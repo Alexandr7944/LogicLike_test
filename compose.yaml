@@ -1,0 +1,93 @@
+# provide a name if you wish
+name: logic_like_test
+
+networks:
+  postgres-net:
+    driver: bridge
+
+volumes:
+  postgres-vol:
+    driver: local
+  static:
+    driver: local
+
+services:
+
+  postgres:
+    container_name: logic_like_db
+
+    image:          postgres:16.1-alpine
+
+    environment:
+      - PGPORT=${DB_PORT}
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+
+    volumes:
+      - postgres-vol:/var/lib/postgresql/data
+
+    networks:
+      - postgres-net
+
+    expose:
+      - ${DB_PORT}
+
+    ports:
+      - ${DB_PORT}:${DB_PORT}
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
+      interval:     10s
+      timeout:      5s
+      retries:      5
+      start_period: 10s
+
+    restart:        unless-stopped
+
+  client:
+    build:
+      context:    ./client
+      dockerfile: Dockerfile
+    volumes:
+      - static:/usr/share/nginx/html
+
+  server:
+    container_name: server
+
+    build:
+      context:    ./backend
+      dockerfile: Dockerfile
+    volumes:
+      - static:/usr/share/nginx/html
+
+    environment:
+      DB_HOST:            postgres
+      DB_PORT:            ${DB_PORT}
+      DB_NAME:            ${DB_NAME}
+      DB_USER:            ${DB_USER}
+      DB_PASSWORD:        ${DB_PASSWORD}
+      APP_PORT:           ${APP_PORT}
+      NODE_ENV:           production
+      CLIENT_STATIC_PATH: /usr/share/nginx/html
+
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      client:
+        condition: service_started
+    networks:
+      - postgres-net
+
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: 5
+
+    command: [ "npm", "run", "start" ]
+    restart:        unless-stopped
