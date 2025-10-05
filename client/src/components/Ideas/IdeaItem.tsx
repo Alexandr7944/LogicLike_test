@@ -18,7 +18,7 @@ export function IdeaItem({idea, index, voteForIdea}: IdeaItemProps) {
                 <Button
                     variant="light"
                     onClick={() => voteForIdea(idea.id, index)}
-                    // disabled={idea.isVoted}
+                    disabled={idea.isVoted}
                 >
                     {idea.votesCount}
                     <i

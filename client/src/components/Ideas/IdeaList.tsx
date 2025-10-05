@@ -43,7 +43,7 @@ export const IdeaList = () => {
             });
             if (!response.ok) {
                 setErrorMessage(() => response.status === 409
-                    ? 'Вы уже проголосовали за эту идею или превышен лимит голосов'
+                    ? 'Превышен лимит голосов'
                     : response.statusText);
                 setTimeout(() => setErrorMessage(() => null), 5000);
             } else {
